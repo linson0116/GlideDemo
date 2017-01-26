@@ -32,6 +32,7 @@ public class MainActivity extends Activity {
     private List<String> mImageUrlList = new ArrayList<>();
     private int mPageNumber = 0;
     private boolean isLoading = false;
+    private MyPagerAdapter mAdapter;
     public Handler mHandler = new Handler(){
 
         private List<String> list;
@@ -57,7 +58,6 @@ public class MainActivity extends Activity {
             }
         }
     };
-    private MyPagerAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -154,6 +154,8 @@ public class MainActivity extends Activity {
         @Override
         public Object instantiateItem(ViewGroup container, int position) {
             ImageView imageView = new ImageView(getApplicationContext());
+//            imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+//            imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
             String url = mImageUrlList.get(position);
             Glide.with(getApplicationContext())
                     .load(url)
