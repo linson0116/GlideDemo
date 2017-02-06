@@ -41,8 +41,11 @@ public class MainActivity extends Activity {
     private boolean isLoading = false;
     private MyPagerAdapter mAdapter;
     private ProgressDialog mProgressDialog;
+    private int newPages;
     public Handler mHandler = new Handler() {
 
+        int pagerNumber;
+        ArrayList<String> imageUrlList;
         private List<String> list;
         private String content;
 
@@ -64,11 +67,9 @@ public class MainActivity extends Activity {
                     isLoading = false;
                     break;
                 case 200:
-                    int pagerNumber = msg.arg1;
+                    pagerNumber = msg.arg1;
                     ArrayList<String> imageUrlList = (ArrayList<String>) msg.obj;
                     mImageArray[pagerNumber] = imageUrlList;
-//                    Log.i(TAG, "handleMessage: 200 " + " pagerNumber " + pagerNumber);
-//                    Log.i(TAG, "handleMessage: 200 " + " url " + mPageUrlList.get(pagerNumber));
                     mCurrentPageNumber++;
                     mProgressDialog.setProgress(mCurrentPageNumber);
                     if (mCurrentPageNumber == mPageTotal) {
@@ -85,6 +86,52 @@ public class MainActivity extends Activity {
                             imageBean.save();
                         }
                         Log.i(TAG, "将数据写入数据库  旧--新");
+                        mAdapter.notifyDataSetChanged();
+                    }
+                    break;
+                case 201:
+                    pagerNumber = msg.arg1;
+                    imageUrlList = (ArrayList<String>) msg.obj;
+                    mImageArray[pagerNumber] = imageUrlList;
+                    mCurrentPageNumber++;
+                    mProgressDialog.setProgress(mCurrentPageNumber);
+                    if (mCurrentPageNumber == newPages) {
+                        mProgressDialog.dismiss();
+                        //将新的数据装入内存
+                        mImageUrlList.clear();
+                        for (int i = 0; i < mImageArray.length; i++) {
+                            mImageUrlList.addAll(mImageArray[i]);
+                        }
+                        //将旧的数据装入内存
+                        List<ImageBean> allImageBean = DataSupport.findAll(ImageBean.class);
+                        for (ImageBean bean : allImageBean) {
+                            mImageUrlList.add(bean.getImageUrl());
+                        }
+                        Log.i(TAG, "将数据装入内存  新--旧");
+                        //将新的数据写入数据库
+                        for (int i = 0; i < mImageArray.length; i++) {
+                            ArrayList<String> imageList = mImageArray[mImageArray.length - 1 - i];
+                            for (String url : imageList) {
+                                ImageBean imageBean = new ImageBean();
+                                imageBean.setImageUrl(url);
+                                List<ImageBean> result = DataSupport.where("imageUrl like ?", url).find(ImageBean.class);
+                                if (result.size() == 0) {
+                                    imageBean.save();
+                                    Log.i(TAG, "新数据: " + url);
+                                } else {
+                                    Log.i(TAG, "数据重复 跳出");
+                                    break;
+                                }
+                            }
+                        }
+                        Log.i(TAG, "将新数据写入数据库  旧--新");
+                        //读取标记
+
+                        //查找标记数据
+
+                        //vp转到此页面
+
+
                         mAdapter.notifyDataSetChanged();
                     }
                     break;
@@ -121,6 +168,15 @@ public class MainActivity extends Activity {
         final String stringValue = ToolsUtils.getStringValue(this, "init", NONE);
         if (stringValue.equals(NONE)) {
             Log.i(TAG, "数据库未初始化");
+            //添加网页地址
+            for (int i = mPageTotal; i > 0; i--) {
+                if (i == 1) {
+                    mPageUrlList.add("http://www.qiumeimei.com/tag/gif");
+                } else {
+                    mPageUrlList.add("http://www.qiumeimei.com/tag/gif/page/" + i);
+                }
+            }
+            mImageArray = new ArrayList[mPageTotal];
             //数据库初始化
 //            for (final String url : mPageUrlList) {
 //                Log.i(TAG, "getImageList: url " + url);
@@ -158,21 +214,24 @@ public class MainActivity extends Activity {
             //设置标识 pageNum
             Log.i(TAG, "当前页面数共" + mPageUrlList.size() + "页");
             for (int i = 0; i < mPageUrlList.size(); i++) {
-                new RunThreadGetImageUrl(mHandler, i, mPageUrlList.get(i)).run();
+                new RunThreadGetImageUrl(mHandler, i, mPageUrlList.get(i), 200).run();
             }
             ToolsUtils.setString(this, "init", String.valueOf(mPageUrlList.size()));
         } else {
-            Log.i(TAG, "数据库已经初始化，追加更新 " + stringValue);
             int dbPageNumber = Integer.parseInt(stringValue);
-            int newPages = (mPageTotal - dbPageNumber) + 2;
-
-            List<ImageBean> allImageBean = DataSupport.findAll(ImageBean.class);
-            mImageUrlList.clear();
-            for (ImageBean bean : allImageBean) {
-                mImageUrlList.add(bean.getImageUrl());
+            newPages = (mPageTotal - dbPageNumber) + 1;
+            Log.i(TAG, "数据库已经初始化，追加更新 " + newPages);
+            for (int i = 1; i <= newPages; i++) {
+                if (i == 1) {
+                    mPageUrlList.add("http://www.qiumeimei.com/tag/gif");
+                } else {
+                    mPageUrlList.add("http://www.qiumeimei.com/tag/gif/page/" + i);
+                }
             }
-            mProgressDialog.dismiss();
-            mAdapter.notifyDataSetChanged();
+            mImageArray = new ArrayList[newPages];
+            for (int i = 0; i < mPageUrlList.size(); i++) {
+                new RunThreadGetImageUrl(mHandler, i, mPageUrlList.get(i), 201).run();
+            }
         }
 
     }
@@ -188,9 +247,9 @@ public class MainActivity extends Activity {
                 //Log.i(TAG, "onPageScrolled: 当前页码索引 " + position);
                 //取得更新数据
                 if (position == mImageUrlList.size() - 1 && !isLoading) {
-                    Log.i(TAG, "onPageScrolled: 取得更多数据 " + position);
-                    Toast.makeText(MainActivity.this, "取得更多数据 ", Toast.LENGTH_SHORT).show();
-                    getHtmlContent(mPageUrlList.get(mCurrentPageNumber--), 101);
+                    //Log.i(TAG, "onPageScrolled: 取得更多数据 " + position);
+                    Toast.makeText(MainActivity.this, "没有更多数据", Toast.LENGTH_SHORT).show();
+                    //getHtmlContent(mPageUrlList.get(mCurrentPageNumber--), 101);
                 }
             }
 
@@ -244,29 +303,15 @@ public class MainActivity extends Activity {
             public void onSuccess(ResponseInfo<String> responseInfo) {
                 String content = responseInfo.result;
                 mPageTotal = Integer.parseInt(RegularUtils.getPageNumfromHtmlContent(content));
-                mPageTotal = 5;
-                mImageArray = new ArrayList[mPageTotal];
-//                Log.i(TAG, "mPageTotal: " + mPageTotal);
-                //
+                //mPageTotal = 5;
                 mProgressDialog = new ProgressDialog(MainActivity.this);
                 mProgressDialog.setMessage("数据初始化中");
                 mProgressDialog.setMax(mPageTotal);
                 mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
                 mProgressDialog.show();
-                //添加网页地址
-                for (int i = mPageTotal; i > 0; i--) {
-                    if (i == 1) {
-                        mPageUrlList.add("http://www.qiumeimei.com/tag/gif");
-                    } else {
-                        mPageUrlList.add("http://www.qiumeimei.com/tag/gif/page/" + i);
-                    }
-                }
+
                 //初始化数据库
                 getImageList();
-
-                //取得一页的ImageUrl
-//                mCurrentPageNumber = mPageTotal - 1;
-//                getHtmlContent(mPageUrlList.get(mCurrentPageNumber--), 100);
             }
 
             @Override
@@ -317,11 +362,13 @@ class RunThreadGetImageUrl extends Thread {
     Handler handler;
     int pageNumber;
     String url;
+    int type;
 
-    RunThreadGetImageUrl(Handler handler, int pageNumber, String url) {
+    RunThreadGetImageUrl(Handler handler, int pageNumber, String url, int type) {
         this.handler = handler;
         this.pageNumber = pageNumber;
         this.url = url;
+        this.type = type;
     }
 
     @Override
@@ -333,7 +380,7 @@ class RunThreadGetImageUrl extends Thread {
                 String content = responseInfo.result;
                 List<String> imageUrlList = RegularUtils.getUrlfromHtmlContent(content);
                 Message message = handler.obtainMessage();
-                message.what = 200;
+                message.what = type;
                 message.arg1 = pageNumber;
                 message.obj = imageUrlList;
                 handler.sendMessage(message);
