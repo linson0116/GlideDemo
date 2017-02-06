@@ -78,7 +78,7 @@ public class MainActivity extends Activity {
                         for (int i = 0; i < mImageArray.length; i++) {
                             mImageUrlList.addAll(mImageArray[mImageArray.length - 1 - i]);
                         }
-                        Log.i(TAG, "将数据装入内存  新--旧");
+                        Log.i(TAG, "将数据装入内存   新--旧");
                         //将数据写入数据库
                         for (int i = 0; i < mImageArray.length; i++) {
                             ImageBean imageBean = new ImageBean();
