@@ -3,6 +3,7 @@
     package="com.example.linson.glidedemo">
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
+        android:name="org.litepal.LitePalApplication"
         android:allowBackup="true"
         android:icon="@drawable/icon"
         android:label="动图"
