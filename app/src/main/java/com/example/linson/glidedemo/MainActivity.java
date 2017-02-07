@@ -11,6 +11,8 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -31,7 +33,10 @@ import static android.content.ContentValues.TAG;
 
 public class MainActivity extends Activity {
 
-    private final String NONE = "none";
+    public static final String CURRENT_PAGE_NUMBER = "currentPageNumber";
+    private static final String NONE = "none";
+    private Button btn_to_page;
+    private EditText et_page_number;
     private ViewPager vp;
     private List<String> mPageUrlList = new ArrayList<>();
     private List<String> mImageUrlList = new ArrayList<>();
@@ -43,29 +48,10 @@ public class MainActivity extends Activity {
     private ProgressDialog mProgressDialog;
     private int newPages;
     public Handler mHandler = new Handler() {
-
         int pagerNumber;
-        ArrayList<String> imageUrlList;
-        private List<String> list;
-        private String content;
-
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case 100:
-                    content = (String) msg.obj;
-                    //List<String> list = RegularUtils.getUrlfromHtmlContent(content);
-                    //mImageUrlList = list;
-//                    Log.i(TAG, "100: mImageUrlList = " + mImageUrlList);
-                    mAdapter.notifyDataSetChanged();
-                    break;
-                case 101:
-                    content = (String) msg.obj;
-                    list = RegularUtils.getUrlfromHtmlContent(content);
-                    mImageUrlList.addAll(list);
-                    mAdapter.notifyDataSetChanged();
-                    isLoading = false;
-                    break;
                 case 200:
                     pagerNumber = msg.arg1;
                     ArrayList<String> imageUrlList = (ArrayList<String>) msg.obj;
@@ -80,7 +66,7 @@ public class MainActivity extends Activity {
                         }
                         Log.i(TAG, "将数据装入内存   新--旧");
                         //将数据写入数据库
-                        for (int i = 0; i < mImageArray.length; i++) {
+                        for (int i = 0; i < mImageUrlList.size(); i++) {
                             ImageBean imageBean = new ImageBean();
                             imageBean.setImageUrl(mImageUrlList.get(i));
                             imageBean.save();
@@ -97,16 +83,6 @@ public class MainActivity extends Activity {
                     mProgressDialog.setProgress(mCurrentPageNumber);
                     if (mCurrentPageNumber == newPages) {
                         mProgressDialog.dismiss();
-                        //将新的数据装入内存
-                        mImageUrlList.clear();
-                        for (int i = 0; i < mImageArray.length; i++) {
-                            mImageUrlList.addAll(mImageArray[i]);
-                        }
-                        //将旧的数据装入内存
-                        List<ImageBean> allImageBean = DataSupport.findAll(ImageBean.class);
-                        for (ImageBean bean : allImageBean) {
-                            mImageUrlList.add(bean.getImageUrl());
-                        }
                         Log.i(TAG, "将数据装入内存  新--旧");
                         //将新的数据写入数据库
                         for (int i = 0; i < mImageArray.length; i++) {
@@ -125,19 +101,35 @@ public class MainActivity extends Activity {
                             }
                         }
                         Log.i(TAG, "将新数据写入数据库  旧--新");
+                        //将数据库的数据装入内存
+                        mImageUrlList.clear();
+                        List<ImageBean> all = DataSupport.findAll(ImageBean.class);
+                        Log.i(TAG, "数据中共有" + all.size() + "条数据");
+                        for (ImageBean bean : all) {
+                            mImageUrlList.add(bean.getImageUrl());
+                        }
                         //读取标记
-
-                        //查找标记数据
-
-                        //vp转到此页面
-
-
+                        String stringValue = ToolsUtils.getStringValue(MainActivity.this, CURRENT_PAGE_NUMBER, "0");
+                        int intValue = Integer.parseInt(stringValue);
+                        if (intValue == 0) {
+                            Log.i(TAG, "没有标记过页面");
+                        } else {
+                            Log.i(TAG, "标记为第" + intValue + "页");
+                            //查找标记数据
+                            ImageBean imageBean = DataSupport.find(ImageBean.class, Integer.parseInt(stringValue));
+                            Log.i(TAG, "标记文件  " + imageBean.getImageUrl());
+                            //vp转到此页面
+                            mAdapter.notifyDataSetChanged();
+                            vp.setCurrentItem(intValue - 1, true);
+                            et_page_number.setText(intValue + "");
+                        }
                         mAdapter.notifyDataSetChanged();
                     }
                     break;
             }
         }
     };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -150,12 +142,6 @@ public class MainActivity extends Activity {
     }
 
     private void test() {
-        ArrayList<String> list = new ArrayList<>();
-        list.add(0, "0");
-        list.add(1, null);
-        Log.i(TAG, "test: " + list.size());
-        list.remove(null);
-        Log.i(TAG, "test: " + list.size());
     }
 
     private void initData() {
@@ -178,39 +164,6 @@ public class MainActivity extends Activity {
             }
             mImageArray = new ArrayList[mPageTotal];
             //数据库初始化
-//            for (final String url : mPageUrlList) {
-//                Log.i(TAG, "getImageList: url " + url);
-//                HttpUtils httpUtils = new HttpUtils();
-//                httpUtils.send(HttpRequest.HttpMethod.GET, url, new RequestCallBack<String>() {
-//                    @Override
-//                    public void onSuccess(ResponseInfo<String> responseInfo) {
-//                        List<String> list = RegularUtils.getUrlfromHtmlContent(responseInfo.result);
-//                        mImageUrlList.addAll(list);
-//                        Log.i(TAG, "解析图片  " + url +" mImageUrlList " + mImageUrlList.size());
-//                        for (String url : list) {
-//                            ImageBean imageBean = new ImageBean();
-//                            imageBean.setImageUrl(url);
-//                            imageBean.save();
-//                        }
-//                        overIndex++;
-//                        mProgressDialog.setProgress(overIndex);
-//                        if (overIndex == mPageTotal) {
-//                            mProgressDialog.dismiss();
-//                            Log.i(TAG, "图片数量 " + mImageUrlList.size());
-////                            String imageUrl = mImageUrlList.get(0);
-////                            getHtmlContent(imageUrl,100);
-//                            mAdapter.notifyDataSetChanged();
-//
-//
-//                        }
-//                    }
-//                    @Override
-//                    public void onFailure(HttpException e, String s) {
-//                        Log.i(TAG, "onFailure: ");
-//                    }
-//                });
-//            }
-
             //设置标识 pageNum
             Log.i(TAG, "当前页面数共" + mPageUrlList.size() + "页");
             for (int i = 0; i < mPageUrlList.size(); i++) {
@@ -233,10 +186,20 @@ public class MainActivity extends Activity {
                 new RunThreadGetImageUrl(mHandler, i, mPageUrlList.get(i), 201).run();
             }
         }
-
     }
 
     private void initUI() {
+        btn_to_page = (Button) findViewById(R.id.btn_to_page);
+        btn_to_page.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String currentPageNumber = et_page_number.getText().toString();
+                int i_currentPageNumber = Integer.parseInt(currentPageNumber) - 1;
+                vp.setCurrentItem(i_currentPageNumber, true);
+                Log.i(TAG, "转到" + currentPageNumber + "页");
+            }
+        });
+        et_page_number = (EditText) findViewById(R.id.et_page_number);
         vp = (ViewPager) findViewById(R.id.vp);
         //设置viewpager数据适配器
         mAdapter = new MyPagerAdapter();
@@ -244,18 +207,17 @@ public class MainActivity extends Activity {
         vp.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-                //Log.i(TAG, "onPageScrolled: 当前页码索引 " + position);
-                //取得更新数据
                 if (position == mImageUrlList.size() - 1 && !isLoading) {
-                    //Log.i(TAG, "onPageScrolled: 取得更多数据 " + position);
                     Toast.makeText(MainActivity.this, "没有更多数据", Toast.LENGTH_SHORT).show();
-                    //getHtmlContent(mPageUrlList.get(mCurrentPageNumber--), 101);
                 }
             }
 
             @Override
             public void onPageSelected(int position) {
-
+                String currentPageNumber = (position + 1) + "";
+                et_page_number.setText(currentPageNumber);
+                ToolsUtils.setString(MainActivity.this, CURRENT_PAGE_NUMBER, currentPageNumber);
+                Log.i(TAG, "标记为第" + currentPageNumber + "页");
             }
 
             @Override
@@ -264,37 +226,6 @@ public class MainActivity extends Activity {
             }
         });
     }
-
-    private void getHtmlContent(String url, final int flag) {
-        HttpUtils httpUtils = new HttpUtils();
-        //Log.i(TAG, "getHtmlContent: 网络地址 " + url);
-        if (flag == 101) {
-            isLoading = true;
-        }
-        httpUtils.send(HttpRequest.HttpMethod.GET, url, new RequestCallBack<String>() {
-            @Override
-            public void onSuccess(ResponseInfo<String> responseInfo) {
-//                Log.i(TAG, "onSuccess: 网页内容" + responseInfo.result);
-                if (flag == 100) {
-                    Message msg = Message.obtain();
-                    msg.what = 100;
-                    msg.obj = responseInfo.result;
-                    mHandler.sendMessage(msg);
-                } else if (flag == 101) {
-                    Message msg = Message.obtain();
-                    msg.what = 101;
-                    msg.obj = responseInfo.result;
-                    mHandler.sendMessage(msg);
-                }
-            }
-
-            @Override
-            public void onFailure(HttpException e, String s) {
-                Log.i(TAG, "onFailure: 网络异常 " + e.toString());
-            }
-        });
-    }
-
     public void getPageNum() {
         HttpUtils httpUtils = new HttpUtils();
         String url = "http://www.qiumeimei.com/tag/gif";
@@ -303,17 +234,15 @@ public class MainActivity extends Activity {
             public void onSuccess(ResponseInfo<String> responseInfo) {
                 String content = responseInfo.result;
                 mPageTotal = Integer.parseInt(RegularUtils.getPageNumfromHtmlContent(content));
-                //mPageTotal = 5;
                 mProgressDialog = new ProgressDialog(MainActivity.this);
                 mProgressDialog.setMessage("数据初始化中");
                 mProgressDialog.setMax(mPageTotal);
                 mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                mProgressDialog.setCancelable(false);
                 mProgressDialog.show();
-
                 //初始化数据库
                 getImageList();
             }
-
             @Override
             public void onFailure(HttpException e, String s) {
                 Log.i(TAG, "取得页面总数失败: " + s);
@@ -337,8 +266,6 @@ public class MainActivity extends Activity {
         @Override
         public Object instantiateItem(ViewGroup container, int position) {
             ImageView imageView = new ImageView(getApplicationContext());
-//            imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-//            imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
             String url = mImageUrlList.get(position);
             Glide.with(getApplicationContext())
                     .load(url)
@@ -388,6 +315,7 @@ class RunThreadGetImageUrl extends Thread {
 
             @Override
             public void onFailure(HttpException e, String s) {
+                Log.i(TAG, "onFailure: " + s);
             }
         });
     }
