@@ -49,6 +49,7 @@ public class MainActivity extends Activity {
     private int newPages;
     public Handler mHandler = new Handler() {
         int pagerNumber;
+
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -59,20 +60,31 @@ public class MainActivity extends Activity {
                     mCurrentPageNumber++;
                     mProgressDialog.setProgress(mCurrentPageNumber);
                     if (mCurrentPageNumber == mPageTotal) {
-                        mProgressDialog.dismiss();
-                        //将数据装入内存
+                        //将数据写入数据库
+                        Log.i(TAG, "handleMessage: " + mImageArray.length);
+                        int sum = 0;
                         for (int i = 0; i < mImageArray.length; i++) {
-                            mImageUrlList.addAll(mImageArray[mImageArray.length - 1 - i]);
+                            ArrayList list = mImageArray[i];
+                            for (int j = list.size() - 1; j >= 0; j--) {
+                                ImageBean bean = new ImageBean();
+                                bean.setImageUrl((String) list.get(j));
+                                bean.save();
+                                sum++;
+                                Log.i(TAG, "handleMessage: " + bean.getImageUrl());
+                            }
+                        }
+                        Log.i(TAG, "将数据写入数据库 写入 " + sum + " 条");
+
+                        //将数据装入内存
+                        mImageUrlList.clear();
+                        List<ImageBean> all = DataSupport.order("id").find(ImageBean.class);
+                        Log.i(TAG, "数据中共有" + all.size() + "条数据");
+                        for (ImageBean bean : all) {
+                            mImageUrlList.add(bean.getImageUrl());
                         }
                         Log.i(TAG, "将数据装入内存   新--旧");
-                        //将数据写入数据库
-                        for (int i = 0; i < mImageUrlList.size(); i++) {
-                            ImageBean imageBean = new ImageBean();
-                            imageBean.setImageUrl(mImageUrlList.get(i));
-                            imageBean.save();
-                        }
-                        Log.i(TAG, "将数据写入数据库  旧--新");
                         mAdapter.notifyDataSetChanged();
+                        mProgressDialog.dismiss();
                     }
                     break;
                 case 201:
@@ -82,28 +94,28 @@ public class MainActivity extends Activity {
                     mCurrentPageNumber++;
                     mProgressDialog.setProgress(mCurrentPageNumber);
                     if (mCurrentPageNumber == newPages) {
-                        mProgressDialog.dismiss();
-                        Log.i(TAG, "将数据装入内存  新--旧");
+                        Log.i(TAG, "将新数据写入数据库  旧--新");
                         //将新的数据写入数据库
                         for (int i = 0; i < mImageArray.length; i++) {
                             ArrayList<String> imageList = mImageArray[mImageArray.length - 1 - i];
-                            for (String url : imageList) {
+                            for (int j = imageList.size() - 1; j >= 0; j--) {
                                 ImageBean imageBean = new ImageBean();
-                                imageBean.setImageUrl(url);
-                                List<ImageBean> result = DataSupport.where("imageUrl like ?", url).find(ImageBean.class);
+                                String imageUrl = imageList.get(j);
+                                imageBean.setImageUrl(imageUrl);
+                                List<ImageBean> result = DataSupport.where("imageUrl like ?", imageUrl).find(ImageBean.class);
                                 if (result.size() == 0) {
                                     imageBean.save();
-                                    Log.i(TAG, "新数据: " + url);
+                                    Log.i(TAG, "新数据: " + imageUrl);
                                 } else {
-                                    Log.i(TAG, "数据重复 跳出");
+                                    Log.i(TAG, "数据重复 跳出 " + imageUrl);
                                     break;
                                 }
                             }
                         }
-                        Log.i(TAG, "将新数据写入数据库  旧--新");
+                        Log.i(TAG, "将数据装入内存  新--旧");
                         //将数据库的数据装入内存
                         mImageUrlList.clear();
-                        List<ImageBean> all = DataSupport.findAll(ImageBean.class);
+                        List<ImageBean> all = DataSupport.order("id desc").find(ImageBean.class);
                         Log.i(TAG, "数据中共有" + all.size() + "条数据");
                         for (ImageBean bean : all) {
                             mImageUrlList.add(bean.getImageUrl());
@@ -124,6 +136,7 @@ public class MainActivity extends Activity {
                             et_page_number.setText(intValue + "");
                         }
                         mAdapter.notifyDataSetChanged();
+                        mProgressDialog.dismiss();
                     }
                     break;
             }
@@ -142,6 +155,9 @@ public class MainActivity extends Activity {
     }
 
     private void test() {
+        String html = " src=\"http://wx2.sinaimg.cn/mw690/006D2xVlly1fc6dg5lqmog30ak0747wj.jpg\" ";
+        List<String> list = RegularUtils.getUrlfromHtmlContent(html);
+        Log.i(TAG, "test: " + list.size());
     }
 
     private void initData() {
@@ -226,6 +242,7 @@ public class MainActivity extends Activity {
             }
         });
     }
+
     public void getPageNum() {
         HttpUtils httpUtils = new HttpUtils();
         String url = "http://www.qiumeimei.com/tag/gif";
@@ -243,6 +260,7 @@ public class MainActivity extends Activity {
                 //初始化数据库
                 getImageList();
             }
+
             @Override
             public void onFailure(HttpException e, String s) {
                 Log.i(TAG, "取得页面总数失败: " + s);

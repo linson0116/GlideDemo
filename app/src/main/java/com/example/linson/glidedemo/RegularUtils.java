@@ -1,5 +1,7 @@
 package com.example.linson.glidedemo;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -11,6 +13,8 @@ import java.util.regex.Pattern;
  */
 
 public class RegularUtils {
+    private static final String TAG = "content";
+
     /**
      * 根据网页取得特定url
      * src="http://wx2.sinaimg.cn/mw690/006D2xVlly1fc6dg5lqmog30ak0747wj.gif"
@@ -19,12 +23,13 @@ public class RegularUtils {
     public static List<String> getUrlfromHtmlContent(String content) {
         List<String> list = new ArrayList<String>();
         String reg = "\\ssrc=[\"|']?(http://w([\\w\\W]?)\\d([\\w\\W]*?)(\\.gif))[\"|']";
+        reg = "\\ssrc=[\"|']?(http://w([\\w\\W]?)\\d([\\w\\W]*?)([\\.gif|\\.jpg]))[\"|']";
         Pattern p = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
         Matcher m = p.matcher(content);
         while (m.find()) {
             list.add(m.group(1));
         }
-//        Log.i(TAG, "正则表达取得: size " + list.size());
+        Log.i(TAG, "正则表达取得: size " + list.size());
         return list;
     }
 

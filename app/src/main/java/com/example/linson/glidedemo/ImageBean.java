@@ -10,7 +10,6 @@ public class ImageBean extends DataSupport {
     long id;
     String imageUrl;
 
-
     public long getId() {
         return id;
     }
