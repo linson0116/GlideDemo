@@ -1,7 +1,5 @@
 package com.example.linson.glidedemo;
 
-import android.util.Log;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -19,6 +17,7 @@ public class RegularUtils {
      * 根据网页取得特定url
      * src="http://wx2.sinaimg.cn/mw690/006D2xVlly1fc6dg5lqmog30ak0747wj.gif"
      * src="http://ww1.sinaimg.cn/mw690/a00dfa2agw1fbucdlmqx5g20bo0754qr.gif"
+     * src="http://www.qiumeimei.com/wp-content/uploads/2017/02/2-1F11310503K46.gif"
      */
     public static List<String> getUrlfromHtmlContent(String content) {
         List<String> list = new ArrayList<String>();
@@ -28,8 +27,10 @@ public class RegularUtils {
         Matcher m = p.matcher(content);
         while (m.find()) {
             list.add(m.group(1));
+//            Log.i(TAG, m.group(1));
+//            Log.i(TAG, "-------------------------------------------------");
         }
-        Log.i(TAG, "正则表达取得: size " + list.size());
+        //Log.i(TAG, "正则表达取得: size " + list.size());
         return list;
     }
 

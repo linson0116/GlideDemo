@@ -61,7 +61,7 @@ public class MainActivity extends Activity {
                     mProgressDialog.setProgress(mCurrentPageNumber);
                     if (mCurrentPageNumber == mPageTotal) {
                         //将数据写入数据库
-                        Log.i(TAG, "handleMessage: " + mImageArray.length);
+                        //Log.i(TAG, "handleMessage: " + mImageArray.length);
                         int sum = 0;
                         for (int i = 0; i < mImageArray.length; i++) {
                             ArrayList list = mImageArray[i];
@@ -77,7 +77,7 @@ public class MainActivity extends Activity {
 
                         //将数据装入内存
                         mImageUrlList.clear();
-                        List<ImageBean> all = DataSupport.order("id").find(ImageBean.class);
+                        List<ImageBean> all = DataSupport.order("id desc").find(ImageBean.class);
                         Log.i(TAG, "数据中共有" + all.size() + "条数据");
                         for (ImageBean bean : all) {
                             mImageUrlList.add(bean.getImageUrl());
@@ -155,9 +155,23 @@ public class MainActivity extends Activity {
     }
 
     private void test() {
-        String html = " src=\"http://wx2.sinaimg.cn/mw690/006D2xVlly1fc6dg5lqmog30ak0747wj.jpg\" ";
-        List<String> list = RegularUtils.getUrlfromHtmlContent(html);
-        Log.i(TAG, "test: " + list.size());
+        String url = "http://www.qiumeimei.com/tag/gif";
+        HttpUtils httpUtils = new HttpUtils();
+        httpUtils.send(HttpRequest.HttpMethod.GET, url, new RequestCallBack<String>() {
+            @Override
+            public void onSuccess(ResponseInfo<String> responseInfo) {
+                String html = responseInfo.result;
+//                Log.i(TAG, "onSuccess: " + html);
+                List<String> list = RegularUtils.getUrlfromHtmlContent(html);
+                Log.i(TAG, "onSuccess: " + list.size());
+            }
+
+            @Override
+            public void onFailure(HttpException e, String s) {
+
+            }
+        });
+
     }
 
     private void initData() {
