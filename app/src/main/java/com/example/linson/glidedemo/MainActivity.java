@@ -96,19 +96,21 @@ public class MainActivity extends Activity {
                     if (mCurrentPageNumber == newPages) {
                         Log.i(TAG, "将新数据写入数据库  旧--新");
                         //将新的数据写入数据库
+                        Log.i(TAG, "新数据组数：" + mImageArray.length);
                         for (int i = 0; i < mImageArray.length; i++) {
                             ArrayList<String> imageList = mImageArray[mImageArray.length - 1 - i];
+                            Log.i(TAG, "新数据个数：" + imageList.size());
                             for (int j = imageList.size() - 1; j >= 0; j--) {
                                 ImageBean imageBean = new ImageBean();
                                 String imageUrl = imageList.get(j);
+                                //Log.i(TAG, "新数据 URL：" + imageUrl);
                                 imageBean.setImageUrl(imageUrl);
                                 List<ImageBean> result = DataSupport.where("imageUrl like ?", imageUrl).find(ImageBean.class);
                                 if (result.size() == 0) {
                                     imageBean.save();
-                                    Log.i(TAG, "新数据: " + imageUrl);
+                                    Log.i(TAG, "新数据添加: " + imageUrl);
                                 } else {
-                                    Log.i(TAG, "数据重复 跳出 " + imageUrl);
-                                    break;
+                                    Log.i(TAG, "数据重复 不添加 " + imageUrl);
                                 }
                             }
                         }
@@ -137,6 +139,9 @@ public class MainActivity extends Activity {
                         }
                         mAdapter.notifyDataSetChanged();
                         mProgressDialog.dismiss();
+                        //存储新初始化页数
+                        ToolsUtils.setString(MainActivity.this, "init", String.valueOf(mPageUrlList.size()));
+                        Log.i(TAG, "存储新初始化页数: " + mPageTotal);
                     }
                     break;
             }
@@ -199,11 +204,14 @@ public class MainActivity extends Activity {
             for (int i = 0; i < mPageUrlList.size(); i++) {
                 new RunThreadGetImageUrl(mHandler, i, mPageUrlList.get(i), 200).run();
             }
+            //存储初始化页数
             ToolsUtils.setString(this, "init", String.valueOf(mPageUrlList.size()));
+            Log.i(TAG, "初始化页数记录：" + mPageUrlList.size());
         } else {
             int dbPageNumber = Integer.parseInt(stringValue);
             newPages = (mPageTotal - dbPageNumber) + 1;
-            Log.i(TAG, "数据库已经初始化，追加更新 " + newPages);
+            Log.i(TAG, "当前最新页数：" + mPageTotal + " 数据已经记录页数：" + dbPageNumber);
+            Log.i(TAG, "数据库已经初始化，追加更新 追加页数 + 1：" + newPages);
             for (int i = 1; i <= newPages; i++) {
                 if (i == 1) {
                     mPageUrlList.add("http://www.qiumeimei.com/tag/gif");
